@@ -5,12 +5,12 @@ import { useStoreContext } from "../context"
 import { useLocation, useNavigate } from "react-router-dom";
 import {Elements} from '@stripe/react-stripe-js';
 import {loadStripe} from '@stripe/stripe-js';
-
-const stripePromise = loadStripe('pk_test_51P8i19SJ0mjuUqeVRTGBUgxyIuUmT3uK92KV6tmDH91yr9M3WBUe1lQ0cwbGNqn2QiolJm1YzXk99L0Z3suhGloU00AZlAllrO');
-
+import CheckoutForm from "../components/CheckoutForm";
 
 const CartPage = () => {
     const { authenticated, profile, cart, loading, setLoading } = useStoreContext();
+    const stripePromise = loadStripe('pk_test_51P8i19SJ0mjuUqeVRTGBUgxyIuUmT3uK92KV6tmDH91yr9M3WBUe1lQ0cwbGNqn2QiolJm1YzXk99L0Z3suhGloU00AZlAllrO');
+    const [clientSecret, setClientSecret] = useState("");
     const [cartTotal, setCartTotal] = useState(0);
     const [tax, setTax] = useState(0);
     const location = useLocation();
@@ -20,7 +20,7 @@ const CartPage = () => {
         console.log("Triggering CartPage useEffect");
         setLoading(true);
         
-        const subTotal = Math.round((cart.reduce((acc, item) => acc + item.price, 0) + Number.EPSILON)*100) / 100;
+        const subTotal = Math.round((cart.reduce((acc, item) => acc + (item.price * item.quantity), 0) + Number.EPSILON)*100) / 100;
         const taxAmt = Math.round(((subTotal*0.18) + Number.EPSILON)*100) / 100;
         setCartTotal(_ => subTotal);
         setTax(_ => taxAmt);
@@ -29,16 +29,15 @@ const CartPage = () => {
         }
     }, [cart, profile, location])
 
-    // Calc cart total
-    // const cartTotal = cart.reduce((acc, item) => acc + item.price, 0);
-
     const proceedToCheckout = async () => {
         if (authenticated) {
             await Promise.all(cart.map(async (item) => {
+                console.log(`Adding ${item.product_id} to ss-cart...`);
                 const response = await fetch(`http://k8s.orb.local/api/v1/customer/cart/${profile?._id}`, {
                     method: "POST",
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({product_id: item.product_id, quantity: item.quantity})
                 });
@@ -52,10 +51,12 @@ const CartPage = () => {
             }));
 
             //  Place order
-            const repsonse = await fetch('http://k8s.orb.local/api/v1/order/', {
+            console.log("Placing Order...");
+            const repsonse = await fetch('http://k8s.orb.local/api/v1/orders/', {
                 method: 'POST',
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({user_id: profile?._id})
             })
@@ -66,6 +67,9 @@ const CartPage = () => {
                 console.log("Order created", data);
 
                 const paymentResp = await fetch(`http://k8s.orb.local/api/v1/payments/intent/${data.data.payment_id}`)
+                const clientSecretResp = await paymentResp.json();
+                console.log("Client Secret", clientSecretResp.data.client_secret);
+                setClientSecret(clientSecretResp.data.client_secret);
 
                 // localStorage.removeItem('cart');
             } else {
@@ -117,15 +121,17 @@ const CartPage = () => {
                                 <span className="font-bold">Total</span>
                                 <span className="font-bold">INR {Math.round((cartTotal + tax + Number.EPSILON) * 100) / 100}</span>
                             </div>
-                            <button onClick={() => {
-                                if (authenticated) {
-                                    alert("Proceeding to checkout");
-                                } else {
-                                    navigate("/login");
-                                }
-                            }} className="w-full p-3 rounded-xl bg-slate-600 hover:bg-slate-800 text-gray-50 transition-all duration-100 ease-in-out">
+                            {!clientSecret ? (
+                                <button onClick={proceedToCheckout} className="w-full p-3 rounded-xl bg-slate-600 hover:bg-slate-800 text-gray-50 transition-all duration-100 ease-in-out">
                                 {authenticated ? "Proceed to Checkout" : "Login to Checkout"}
                             </button>
+                            ) : (
+                                <Elements stripe={stripePromise} options={{
+                                    clientSecret: clientSecret as string,
+                                }}>
+                                    <CheckoutForm />
+                                </Elements>
+                            )}
                         </div>
                     </div>
                 </div>

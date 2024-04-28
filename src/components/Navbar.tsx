@@ -4,7 +4,7 @@ import { useStoreContext } from "../context";
 
 const Navbar = () => {
     const search = async () => {}
-    const {authenticated, numCartItems} = useStoreContext();
+    const {authenticated, numCartItems, logout} = useStoreContext();
 
   return (
     <nav className="flex items-center justify-between w-screen p-4 bg-slate-800 text-gray-50">
@@ -24,9 +24,17 @@ const Navbar = () => {
         {/* User Profile / Login, Signup button */}
         <div className="flex gap-4">
         {authenticated ? (
+            <>
             <a href="/profile">
                 <span>Profile</span>
             </a>
+            <a href="/orders">
+                <span>Orders</span>
+            </a>
+            <button onClick={logout}>
+                <span>Logout</span>
+            </button>
+            </>
         ) : (
             <>
                 <a href="/login">

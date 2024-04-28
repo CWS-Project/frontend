@@ -1,4 +1,5 @@
 import { MdDelete } from "react-icons/md";
+import { useStoreContext } from "../context";
 
 
 type Props = {
@@ -6,6 +7,7 @@ type Props = {
 }
 
 const CartItem = ({ item }: Props) => {
+    const {removeFromCart} = useStoreContext();
     return (
         <div className='flex items-start justify-between border-b pb-1'>
             <div className="flex items-start space-x-2">
@@ -16,7 +18,7 @@ const CartItem = ({ item }: Props) => {
                     <p>Quantity: {item.quantity}</p>
                 </div>
             </div>
-            <button className="p-2 rounded-xl bg-red-700 hover:bg-red-800">
+            <button onClick={async () => await removeFromCart(item.product_id)} className="p-2 rounded-xl bg-red-700 hover:bg-red-800">
                 <MdDelete size={20} className="text-white" />
             </button>
         </div>
