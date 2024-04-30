@@ -2,13 +2,11 @@ import { useEffect, useState } from "react"
 import { useStoreContext } from "../context";
 import Navbar from "../components/Navbar";
 import { IoIosDownload } from "react-icons/io";
-import { useNavigate } from "react-router-dom";
 
 
 const OrdersPage = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const { profile, loading, setLoading } = useStoreContext();
-    const navigate = useNavigate();
 
     const getInvoiceUrl = async (order_id: string) => {
         const url = `http://k8s.orb.local/api/v1/invoice/${order_id}`;
