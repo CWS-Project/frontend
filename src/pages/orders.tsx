@@ -1,10 +1,27 @@
 import { useEffect, useState } from "react"
 import { useStoreContext } from "../context";
 import Navbar from "../components/Navbar";
+import { IoIosDownload } from "react-icons/io";
+import { useNavigate } from "react-router-dom";
+
 
 const OrdersPage = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const { profile, loading, setLoading } = useStoreContext();
+    const navigate = useNavigate();
+
+    const getInvoiceUrl = async (order_id: string) => {
+        const url = `http://k8s.orb.local/api/v1/invoice/${order_id}`;
+        const response = await fetch(url, {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem('access_token')}`
+            }
+        })
+        if (response.ok) {
+            const data = await response.json();
+            window.location.href = data.data?.invoice_url;
+        }
+    }
 
     const fetchOrders = async () => {
         setLoading(true);
@@ -49,6 +66,7 @@ const OrdersPage = () => {
                                         <th className="p-3 text-sm font-semibold tracking-wide text-left">Items</th>
                                         <th className="w-24 p-3 text-sm font-semibold tracking-wide text-left">Amount</th>
                                         <th className="w-32 p-3 text-sm font-semibold tracking-wide text-left">Status</th>
+                                        <th className="w-32 p-3 text-sm font-semibold tracking-wide text-left">Invoice</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -72,6 +90,11 @@ const OrdersPage = () => {
                                             <td className="whitespace-nowrap p-3 text-sm text-slate-700">
                                                 <span className={`p-1.5 text-xs font-medium uppercase tracking-wider ${order.status === "paid" ? "bg-green-200 text-green-800" : "bg-yellow-200 text-yellow-800"} rounded-lg bg-opacity-50`}>{order.status}</span>
                                             </td>
+                                            <td>
+                                                <button className="flex h-10 w-10 items-center justify-center space-x-1 hover:bg-slate-800 hover:text-gray-50 transition-all duration-150 p-1 text-slate-800 border border-slate-800 rounded-lg" onClick={async () => await getInvoiceUrl(order?._id)}>
+                                                    <IoIosDownload />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -85,7 +108,7 @@ const OrdersPage = () => {
                             </table>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:hidden">
                             {orders.map(order => (
                                 <div key={order._id} className="bg-white space-y-3 p-4 rounded-lg shadow">
                                     <div className="flex items-center space-x-2 text-sm">
@@ -107,8 +130,17 @@ const OrdersPage = () => {
                                             ))}
                                         </p>
                                     </div>
-                                    <div className="text-sm font-medium text-slate-900">
-                                        {order.currency.toUpperCase()} {order.grand_total}
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-sm font-medium text-slate-900">
+                                            {order.currency.toUpperCase()} {order.grand_total}
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-900">
+                                                <button className="flex items-center justify-center space-x-1 hover:bg-slate-800 hover:text-gray-50 transition-all duration-150 p-1 text-slate-800 border border-slate-800 rounded-lg" onClick={async () => await getInvoiceUrl(order?._id)}>
+                                                    <IoIosDownload />
+                                                    <span>Invoice</span>
+                                                </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
