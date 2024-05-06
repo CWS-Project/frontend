@@ -40,8 +40,8 @@ const Navbar = () => {
                 <a href="/login">
                     <span>Login</span>
                 </a>
-                <a href="/signup">
-                    <span>Signup</span>
+                <a href="/register">
+                    <span>Register</span>
                 </a>
             </>
         )}
